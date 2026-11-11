@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#2F3E33">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Daily Attendance & Task Tracker</title>
+
+    <!-- Inline Web App Manifest via Data URL for Native Android/PWA Installation -->
+    <link rel="manifest" href='data:application/manifest+json,{"name":"Work %26 Attendance Tracker","short_name":"Tracker","start_url":".","display":"standalone","background_color":"%23F4F3EF","theme_color":"%232F3E33","icons":[{"src":"https://cdn-icons-png.flaticon.com/512/3652/3652191.png","sizes":"512x512","type":"image/png"}]}'>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Readex Pro for Eye Comfort Reading -->
+    <link href="https://fonts.googleapis.com/css2?family=Readex+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Readex Pro', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: #F4F3EF; /* Warm stone/sand background */
+            color: #2C3531;
+            min-height: 100vh;
+            -webkit-tap-highlight-color: transparent;
+            overflow-x: hidden;
+        }
+
+        /* Custom Earthy Theme Classes */
+        .bg-earth-primary { background-color: #2F3E33; } /* Deep Olive Green */
+        .bg-earth-secondary { background-color: #4A5D4E; }
+        .bg-earth-card { background-color: #FFFFFF; }
+        .bg-earth-surface { background-color: #EAE8E1; }
+        .bg-earth-terracotta { background-color: #C86D51; } /* Warm Terracotta Accent */
+        
+        .text-earth-dark { color: #2C3531; }
+        .text-earth-muted { color: #616F67; }
+        .text-earth-terracotta { color: #C86D51; }
+        .text-earth-olive { color: #2F3E33; }
+        
+        .border-earth { border-color: #E0DDD5; }
+
+        /* Status Badge Colors */
+        .badge-pending { background-color: #F6E6CC; color: #7A5310; border: 1px solid #E2CA9E; }
+        .badge-ongoing { background-color: #DDE8F0; color: #1E4663; border: 1px solid #B8CFE0; }
+        .badge-partial { background-color: #E2EABF; color: #3C5012; border: 1px solid #C4D390; }
+        .badge-completed { background-color: #C8D8C2; color: #1E3B27; border: 1px solid #9FB896; }
+
+        /* Priority Badges */
+        .prio-high { background-color: #FADBD8; color: #78281F; border: 1px solid #F5B7B1; }
+        .prio-medium { background-color: #FCF3CF; color: #7D6608; border: 1px solid #F9E79F; }
+        .prio-low { background-color: #E8F8F5; color: #117864; border: 1px solid #A3E4D7; }
+
+        /* Soft Android Material Elevation Shadow */
+        .md-shadow {
+            box-shadow: 0 3px 12px -2px rgba(47, 62, 51, 0.08), 0 2px 6px -1px rgba(47, 62, 51, 0.04);
+        }
+
+        /* Mobile Tap Effects */
+        .touch-active:active {
+            transform: scale(0.98);
+            opacity: 0.9;
+        }
+
+        @media print {
+            .no-print { display: none !important; }
+            body { background: white !important; color: black !important; }
+            .print-card { box-shadow: none !important; border: 1px solid #ccc !important; }
+        }
+    </style>
+</head>
+<body class="antialiased flex flex-col min-h-screen pb-24 sm:pb-6">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-earth-primary text-stone-100 shadow-md no-print sticky top-0 z-40">
+        <div class="max-w-5xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between">
+            <div class="flex items-center space-x-2.5 sm:space-x-3">
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-stone-100/10 flex items-center justify-center border border-stone-100/20 shrink-0">
+                    <i class="fa-solid fa-clipboard-check text-stone-200 text-sm sm:text-base"></i>
+                </div>
+                <div>
+                    <h1 class="text-sm sm:text-base font-bold tracking-wide text-stone-100 leading-tight">Work Tracker</h1>
+                    <p class="text-[10px] sm:text-[11px] text-stone-300 font-normal">Attendance & Task Reporter</p>
+                </div>
+            </div>
+
+            <!-- Desktop / Tablet Navigation Tabs -->
+            <nav class="hidden sm:flex space-x-1 bg-black/20 p-1 rounded-xl text-xs font-medium">
+                <button onclick="switchTab('attendance')" id="tab-attendance" class="px-3.5 py-1.5 rounded-lg bg-stone-100 text-earth-dark font-semibold shadow-xs transition">
+                    <i class="fa-solid fa-calendar-day mr-1.5"></i> Attendance
+                </button>
+                <button onclick="switchTab('tasks')" id="tab-tasks" class="px-3.5 py-1.5 rounded-lg text-stone-200 hover:text-white transition relative">
+                    <i class="fa-solid fa-list-check mr-1.5"></i> Tasks
+                    <span id="pending-badge" class="hidden ml-1.5 bg-earth-terracotta text-white text-[10px] px-1.5 py-0.2 rounded-full font-bold">0</span>
+                </button>
+                <button onclick="switchTab('reports')" id="tab-reports" class="px-3.5 py-1.5 rounded-lg text-stone-200 hover:text-white transition">
+                    <i class="fa-solid fa-chart-pie mr-1.5"></i> Reports
+                </button>
+                <button onclick="switchTab('settings')" id="tab-settings" class="px-3.5 py-1.5 rounded-lg text-stone-200 hover:text-white transition">
+                    <i class="fa-solid fa-bell mr-1.5"></i> Alarm Settings
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Alarm Notification Banner Alert -->
+    <div id="alarm-banner" class="hidden bg-earth-terracotta text-white px-3 sm:px-4 py-3 shadow-lg border-b border-white/20 no-print sticky top-[49px] sm:top-[53px] z-50">
+        <div class="max-w-5xl mx-auto flex items-center justify-between gap-2 flex-wrap sm:flex-nowrap">
+            <div class="flex items-center space-x-2.5 sm:space-x-3">
+                <i class="fa-solid fa-bell animate-bounce text-lg sm:text-xl shrink-0"></i>
+                <div>
+                    <h3 class="font-bold text-xs sm:text-sm">Reporting Time Reminder!</h3>
+                    <p class="text-[11px] sm:text-xs text-stone-100">Time to log your daily work details and task progress.</p>
+                </div>
+            </div>
+            <div class="flex items-center space-x-2 w-full sm:w-auto justify-end mt-1 sm:mt-0">
+                <button onclick="snoozeAlarm();" class="bg-stone-200 text-earth-dark font-bold px-3 py-1.5 rounded-lg text-xs shadow hover:bg-white transition touch-active flex items-center">
+                    <i class="fa-solid fa-clock-rotate-left mr-1"></i> Snooze (<span id="banner-snooze-min">10</span>m)
+                </button>
+                <button onclick="dismissAlarmBanner();" class="bg-black/30 text-white font-bold px-3 py-1.5 rounded-lg text-xs hover:bg-black/40 transition touch-active">
+                    Dismiss
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Container -->
+    <main class="max-w-5xl mx-auto w-full px-3 sm:px-6 py-4 sm:py-6 flex-grow">
+
+        <!-- ================= TAB 1: ATTENDANCE LOG ================= -->
+        <section id="sec-attendance" class="space-y-4">
+            <!-- Add Work Entry Card -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <h2 class="text-xs sm:text-sm font-bold text-earth-dark border-b border-earth pb-2 mb-3 flex items-center">
+                    <i class="fa-solid fa-pen-to-square text-earth-secondary mr-2"></i> Log Daily Attendance & Work
+                </h2>
+                <form id="attendance-form" onsubmit="saveAttendance(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Date</label>
+                        <input type="date" id="att-date" required class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-semibold text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Attendance Status</label>
+                        <select id="att-status" required class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-semibold text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                            <option value="Present">Present</option>
+                            <option value="WFH">Work From Home (WFH)</option>
+                            <option value="Half Day">Half Day</option>
+                            <option value="Absent">Absent</option>
+                            <option value="Holiday">Holiday</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Work Description / Log Details</label>
+                        <textarea id="att-desc" rows="3" required placeholder="Detail the tasks, projects, or achievements completed today..." class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-medium text-earth-dark outline-none focus:ring-2 focus:ring-stone-500"></textarea>
+                    </div>
+                    <div class="sm:col-span-2 flex justify-end">
+                        <button type="submit" class="w-full sm:w-auto justify-center bg-earth-primary hover:bg-earth-secondary text-stone-100 font-semibold px-5 py-2.5 rounded-xl text-xs shadow transition flex items-center touch-active min-h-[42px]">
+                            <i class="fa-solid fa-floppy-disk mr-1.5"></i> Save Entry
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Logged Records Card -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-earth pb-3 mb-3">
+                    <h2 class="text-xs sm:text-sm font-bold text-earth-dark flex items-center">
+                        <i class="fa-solid fa-clock-rotate-left text-earth-secondary mr-2"></i> Attendance Log History
+                    </h2>
+                    
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="month" id="filter-month" onchange="renderAttendanceTable()" class="bg-earth-surface border border-earth rounded-lg px-2.5 py-1.5 text-xs font-semibold outline-none flex-grow sm:flex-grow-0">
+                        <button onclick="shareAttendanceWhatsApp()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition flex items-center touch-active min-h-[36px]">
+                            <i class="fa-brands fa-whatsapp text-sm mr-1.5"></i> Share Attendance
+                        </button>
+                        <button onclick="exportAttendanceCSV()" class="bg-stone-700 hover:bg-stone-800 text-white px-2.5 py-1.5 rounded-lg text-xs font-semibold shadow transition touch-active min-h-[36px]">
+                            <i class="fa-solid fa-file-csv mr-1"></i> CSV
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Input -->
+                <div class="mb-3">
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-earth-muted text-xs"></i>
+                        <input type="text" id="att-search" oninput="renderAttendanceTable()" placeholder="Search description entries..." class="w-full bg-earth-surface border border-earth rounded-xl pl-8 pr-3 py-2 text-xs font-medium text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                    </div>
+                </div>
+
+                <!-- History Table Container -->
+                <div class="overflow-x-auto rounded-xl border border-earth -mx-1 sm:mx-0">
+                    <table class="w-full text-left text-xs text-earth-dark min-w-[500px] sm:min-w-full">
+                        <thead class="bg-earth-surface text-earth-muted font-bold border-b border-earth">
+                            <tr>
+                                <th class="p-2.5 w-24">Date</th>
+                                <th class="p-2.5 w-28">Status</th>
+                                <th class="p-2.5">Work Summary</th>
+                                <th class="p-2.5 text-right w-20">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attendance-tbody" class="divide-y divide-earth">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 2: TASK MANAGEMENT ================= -->
+        <section id="sec-tasks" class="space-y-4 hidden">
+            <!-- Add Task Form Card -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <h2 class="text-xs sm:text-sm font-bold text-earth-dark border-b border-earth pb-2 mb-3 flex items-center">
+                    <i class="fa-solid fa-square-plus text-earth-secondary mr-2"></i> Add New Task
+                </h2>
+                <form id="task-form" onsubmit="saveTask(event)" class="grid grid-cols-1 sm:grid-cols-6 gap-3">
+                    <div class="sm:col-span-3">
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Task Description</label>
+                        <input type="text" id="task-title" required placeholder="What needs to be accomplished?" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-medium text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                    </div>
+                    <div class="sm:col-span-1">
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Priority</label>
+                        <select id="task-priority" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-semibold text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                            <option value="High">High 🔴</option>
+                            <option value="Medium" selected>Medium 🟡</option>
+                            <option value="Low">Low 🟢</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-2">
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Initial Status</label>
+                        <select id="task-status" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-semibold text-earth-dark outline-none focus:ring-2 focus:ring-stone-500">
+                            <option value="Pending">⏳ Pending</option>
+                            <option value="Ongoing">🔄 Ongoing</option>
+                            <option value="Partially Completed">🌓 Partially Completed</option>
+                            <option value="Completed">✅ Completed</option>
+                        </select>
+                    </div>
+                    <div class="sm:col-span-6 flex justify-end">
+                        <button type="submit" class="w-full sm:w-auto justify-center bg-earth-primary hover:bg-earth-secondary text-stone-100 font-semibold px-5 py-2.5 rounded-xl text-xs shadow transition flex items-center touch-active min-h-[42px]">
+                            <i class="fa-solid fa-plus mr-1.5"></i> Add Task
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Task Roster Card -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-earth pb-3 mb-3">
+                    <h2 class="text-xs sm:text-sm font-bold text-earth-dark flex items-center">
+                        <i class="fa-solid fa-list-check text-earth-secondary mr-2"></i> Active Task Roster
+                    </h2>
+
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Filter Selector Buttons -->
+                        <div class="flex bg-earth-surface p-0.5 rounded-lg text-[11px] font-semibold border border-earth overflow-x-auto w-full sm:w-auto">
+                            <button onclick="setTaskFilter('all')" id="filter-task-all" class="flex-1 sm:flex-initial px-2 py-1 rounded-md bg-white text-earth-dark shadow-xs">All</button>
+                            <button onclick="setTaskFilter('Pending')" id="filter-task-Pending" class="flex-1 sm:flex-initial px-2 py-1 rounded-md text-earth-muted">Pending</button>
+                            <button onclick="setTaskFilter('Ongoing')" id="filter-task-Ongoing" class="flex-1 sm:flex-initial px-2 py-1 rounded-md text-earth-muted">Ongoing</button>
+                            <button onclick="setTaskFilter('Partially Completed')" id="filter-task-Partially Completed" class="flex-1 sm:flex-initial px-2 py-1 rounded-md text-earth-muted">Partial</button>
+                            <button onclick="setTaskFilter('Completed')" id="filter-task-Completed" class="flex-1 sm:flex-initial px-2 py-1 rounded-md text-earth-muted">Done</button>
+                        </div>
+                        <button onclick="shareTasksWhatsApp()" class="w-full sm:w-auto justify-center bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition flex items-center touch-active min-h-[36px]">
+                            <i class="fa-brands fa-whatsapp text-sm mr-1.5"></i> Share Tasks
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Priority Filter Switcher -->
+                <div class="flex items-center space-x-1.5 sm:space-x-2 mb-3 text-xs overflow-x-auto pb-1">
+                    <span class="font-bold text-earth-muted text-[11px] shrink-0">Priority:</span>
+                    <button onclick="setPriorityFilter('all')" id="prio-filter-all" class="px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth font-bold text-earth-dark shrink-0">All</button>
+                    <button onclick="setPriorityFilter('High')" id="prio-filter-High" class="px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth text-earth-muted shrink-0">High</button>
+                    <button onclick="setPriorityFilter('Medium')" id="prio-filter-Medium" class="px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth text-earth-muted shrink-0">Medium</button>
+                    <button onclick="setPriorityFilter('Low')" id="prio-filter-Low" class="px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth text-earth-muted shrink-0">Low</button>
+                </div>
+
+                <!-- Active Tasks Card Container -->
+                <div id="tasks-container" class="space-y-2.5">
+                    <!-- Populated dynamically -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 3: REPORTS & ANALYTICS ================= -->
+        <section id="sec-reports" class="space-y-4 hidden">
+            <!-- Header Filter Bar -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth no-print">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                    <div>
+                        <h2 class="text-xs sm:text-sm font-bold text-earth-dark">Reports & Analytics</h2>
+                        <p class="text-[11px] sm:text-xs text-earth-muted">Summary metrics for monthly work logs & task execution</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-2">
+                        <input type="month" id="report-month" onchange="renderReports()" class="bg-earth-surface border border-earth rounded-lg px-2.5 py-1.5 text-xs font-bold outline-none flex-grow sm:flex-grow-0">
+                        <button onclick="window.print()" class="bg-stone-700 hover:bg-stone-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition touch-active min-h-[36px]">
+                            <i class="fa-solid fa-print mr-1"></i> Print PDF
+                        </button>
+                        <button onclick="shareReportsWhatsApp()" class="bg-emerald-700 hover:bg-emerald-800 text-white px-3 py-1.5 rounded-lg text-xs font-semibold shadow transition touch-active min-h-[36px]">
+                            <i class="fa-brands fa-whatsapp text-sm mr-1"></i> Share Summary
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- KPI Metric Cards -->
+            <div class="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 print-card">
+                <div class="bg-earth-card p-3 sm:p-3.5 rounded-2xl border border-earth md-shadow">
+                    <p class="text-[10px] sm:text-[11px] font-bold text-earth-muted uppercase">Days Logged</p>
+                    <p id="rep-days-worked" class="text-lg sm:text-xl font-bold text-earth-dark mt-0.5">0</p>
+                </div>
+                <div class="bg-earth-card p-3 sm:p-3.5 rounded-2xl border border-earth md-shadow">
+                    <p class="text-[10px] sm:text-[11px] font-bold text-earth-muted uppercase">Total Tasks</p>
+                    <p id="rep-total-tasks" class="text-lg sm:text-xl font-bold text-earth-dark mt-0.5">0</p>
+                </div>
+                <div class="bg-earth-card p-3 sm:p-3.5 rounded-2xl border border-earth md-shadow">
+                    <p class="text-[10px] sm:text-[11px] font-bold text-earth-muted uppercase">Completed</p>
+                    <p id="rep-completed-tasks" class="text-lg sm:text-xl font-bold text-earth-dark mt-0.5">0</p>
+                </div>
+                <div class="bg-earth-card p-3 sm:p-3.5 rounded-2xl border border-earth md-shadow">
+                    <p class="text-[10px] sm:text-[11px] font-bold text-earth-muted uppercase">Completion Rate</p>
+                    <p id="rep-task-rate" class="text-lg sm:text-xl font-bold text-earth-dark mt-0.5">0%</p>
+                </div>
+            </div>
+
+            <!-- Breakdown Visual Charts & WhatsApp Formatting Preview -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <!-- Attendance Breakdown Bars -->
+                <div class="bg-earth-card p-3.5 sm:p-4 rounded-2xl border border-earth md-shadow print-card">
+                    <h3 class="text-xs font-bold text-earth-dark border-b border-earth pb-2 mb-3">Attendance Breakdown</h3>
+                    <div id="attendance-breakdown-bars" class="space-y-3">
+                        <!-- Dynamic content -->
+                    </div>
+                </div>
+
+                <!-- Live WhatsApp Format Direct Preview Box -->
+                <div class="bg-earth-card p-3.5 sm:p-4 rounded-2xl border border-earth md-shadow flex flex-col justify-between print-card">
+                    <div>
+                        <div class="flex items-center justify-between border-b border-earth pb-2 mb-2.5">
+                            <h3 class="text-xs font-bold text-earth-dark flex items-center">
+                                <i class="fa-brands fa-whatsapp text-emerald-700 mr-1.5"></i> WhatsApp Summary Preview
+                            </h3>
+                            <button onclick="copyWhatsAppPreview()" class="text-[11px] bg-earth-surface text-earth-dark font-bold px-2 py-0.5 rounded border border-earth touch-active">Copy Text</button>
+                        </div>
+                        <div id="whatsapp-preview-box" class="bg-stone-900 text-stone-200 p-3 rounded-xl font-mono text-[11px] whitespace-pre-wrap max-h-52 sm:max-h-60 overflow-y-auto border border-stone-800 leading-relaxed">
+                            Loading preview...
+                        </div>
+                    </div>
+                    <button onclick="shareReportsWhatsApp()" class="w-full mt-3 bg-emerald-700 hover:bg-emerald-800 text-white font-bold py-2.5 rounded-xl text-xs shadow transition flex items-center justify-center touch-active min-h-[42px]">
+                        <i class="fa-brands fa-whatsapp text-base mr-2"></i> Send via WhatsApp
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ================= TAB 4: ALARM SETTINGS & SYSTEM ================= -->
+        <section id="sec-settings" class="space-y-4 hidden">
+            <!-- Audio Alarm Reminder Engine -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <h2 class="text-xs sm:text-sm font-bold text-earth-dark border-b border-earth pb-2 mb-3 flex items-center">
+                    <i class="fa-solid fa-bell text-earth-secondary mr-2"></i> Daily Reporting Sound & Snooze Alarm
+                </h2>
+                <div class="space-y-3.5 max-w-xl">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div>
+                            <label class="block text-xs font-semibold text-earth-muted mb-1">Schedule Time</label>
+                            <input type="time" id="reminder-time" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-bold text-earth-dark outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-earth-muted mb-1">Alarm Sound Tone</label>
+                            <select id="alarm-tone" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-bold text-earth-dark outline-none">
+                                <option value="chime">🔔 Gentle Chime</option>
+                                <option value="digital">⚡ Digital Alert</option>
+                                <option value="siren">🚨 Pulsing Siren</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-earth-muted mb-1">Snooze Duration</label>
+                            <select id="snooze-duration" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-bold text-earth-dark outline-none">
+                                <option value="5">5 Minutes</option>
+                                <option value="10" selected>10 Minutes</option>
+                                <option value="15">15 Minutes</option>
+                                <option value="30">30 Minutes</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Browser Notification Permission Request -->
+                    <div class="p-3 bg-earth-surface rounded-xl border border-earth">
+                        <div class="flex items-center justify-between flex-wrap gap-2">
+                            <div>
+                                <h4 class="text-xs font-bold text-earth-dark">OS System Notifications</h4>
+                                <p class="text-[11px] text-earth-muted">Triggers phone notification banner + vibration when app is closed/minimized.</p>
+                            </div>
+                            <button onclick="requestNotificationPermission()" class="w-full sm:w-auto bg-earth-primary hover:bg-earth-secondary text-stone-100 font-bold px-3 py-1.5 rounded-lg text-xs shadow transition touch-active min-h-[36px]">
+                                Enable OS Alerts
+                            </button>
+                        </div>
+                        <p id="notification-status-text" class="text-[10px] font-bold text-earth-muted mt-1">Status: Checking...</p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                        <button onclick="saveReminderTime()" class="w-full sm:w-auto bg-earth-primary hover:bg-earth-secondary text-stone-100 font-bold px-4 py-2 rounded-xl text-xs shadow transition touch-active min-h-[38px]">
+                            Save Schedule
+                        </button>
+                        <button onclick="triggerAudioAlarmTest()" class="w-full sm:w-auto bg-earth-terracotta hover:opacity-90 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition touch-active flex items-center justify-center min-h-[38px]">
+                            <i class="fa-solid fa-volume-high mr-1.5"></i> Test Alarm & Vibration
+                        </button>
+                        <button onclick="stopAudioAlarm()" class="w-full sm:w-auto bg-stone-700 hover:bg-stone-800 text-white font-semibold px-3 py-2 rounded-xl text-xs transition touch-active min-h-[38px]">
+                            Stop Alarm
+                        </button>
+                    </div>
+
+                    <!-- Notice regarding Closed App Behavior -->
+                    <div class="p-3 bg-amber-50/60 border border-amber-200/80 rounded-xl text-[11px] text-amber-900 leading-relaxed">
+                        <p class="font-bold mb-0.5"><i class="fa-solid fa-circle-info text-amber-700 mr-1"></i> Background / Closed App Reminders:</p>
+                        <ul class="list-disc list-inside space-y-0.5 text-[10.5px]">
+                            <li>When the app tab is <b>open</b>, full synthesizer sound + vibration rings simultaneously.</li>
+                            <li>When the app is <b>closed or minimized</b>, OS System Push Notifications trigger vibration & display notification action buttons (<b>Snooze</b> & <b>Dismiss</b>).</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- WhatsApp Direct Recipient Setup -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <h2 class="text-xs sm:text-sm font-bold text-earth-dark border-b border-earth pb-2 mb-3 flex items-center">
+                    <i class="fa-brands fa-whatsapp text-emerald-700 mr-2"></i> Target WhatsApp Number Configuration
+                </h2>
+                <div class="max-w-xl space-y-3">
+                    <div>
+                        <label class="block text-xs font-semibold text-earth-muted mb-1">Default Recipient Phone Number (With Country Code)</label>
+                        <input type="text" id="whatsapp-number" placeholder="e.g. 919876543210" class="w-full bg-earth-surface border border-earth rounded-xl px-3 py-2 text-xs font-bold text-earth-dark outline-none">
+                        <p class="text-[11px] text-earth-muted mt-1">If specified, clicking share opens direct chat with this phone number. Leave blank to choose contact manually inside WhatsApp.</p>
+                    </div>
+                    <button onclick="saveWhatsAppNumber()" class="w-full sm:w-auto bg-emerald-700 hover:bg-emerald-800 text-white font-bold px-4 py-2 rounded-xl text-xs shadow transition touch-active min-h-[38px]">
+                        Save Phone Number
+                    </button>
+                </div>
+            </div>
+
+            <!-- Portable Data Backup & Restore -->
+            <div class="bg-earth-card rounded-2xl md-shadow p-3.5 sm:p-5 border border-earth">
+                <h2 class="text-xs sm:text-sm font-bold text-earth-dark border-b border-earth pb-2 mb-3 flex items-center">
+                    <i class="fa-solid fa-database text-earth-secondary mr-2"></i> Local Data Backup & Migration
+                </h2>
+                <div class="flex flex-col sm:flex-row gap-2.5">
+                    <button onclick="exportJSONBackup()" class="w-full sm:w-auto justify-center bg-stone-800 hover:bg-stone-900 text-white font-semibold px-4 py-2.5 rounded-xl text-xs shadow transition touch-active flex items-center min-h-[38px]">
+                        <i class="fa-solid fa-download mr-1.5"></i> Export JSON Backup
+                    </button>
+                    <label class="w-full sm:w-auto justify-center bg-earth-surface hover:bg-stone-200 text-earth-dark border border-earth font-semibold px-4 py-2.5 rounded-xl text-xs shadow transition cursor-pointer touch-active flex items-center min-h-[38px]">
+                        <i class="fa-solid fa-upload mr-1.5"></i> Restore JSON File
+                        <input type="file" id="import-file" onchange="importJSONBackup(event)" accept=".json" class="hidden">
+                    </label>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Bottom Navigation Bar (Android Mobile Layout) -->
+    <nav class="sm:hidden fixed bottom-0 left-0 right-0 bg-earth-primary text-stone-300 border-t border-stone-800/60 flex justify-around py-2 z-40 no-print shadow-lg">
+        <button onclick="switchTab('attendance')" id="mob-tab-attendance" class="flex flex-col items-center justify-center flex-1 py-1 text-white touch-active">
+            <i class="fa-solid fa-calendar-day text-base"></i>
+            <span class="text-[10px] font-medium mt-0.5">Attendance</span>
+        </button>
+        <button onclick="switchTab('tasks')" id="mob-tab-tasks" class="flex flex-col items-center justify-center flex-1 py-1 hover:text-white text-stone-400 touch-active">
+            <i class="fa-solid fa-list-check text-base"></i>
+            <span class="text-[10px] font-medium mt-0.5">Tasks</span>
+        </button>
+        <button onclick="switchTab('reports')" id="mob-tab-reports" class="flex flex-col items-center justify-center flex-1 py-1 hover:text-white text-stone-400 touch-active">
+            <i class="fa-solid fa-chart-pie text-base"></i>
+            <span class="text-[10px] font-medium mt-0.5">Reports</span>
+        </button>
+        <button onclick="switchTab('settings')" id="mob-tab-settings" class="flex flex-col items-center justify-center flex-1 py-1 hover:text-white text-stone-400 touch-active">
+            <i class="fa-solid fa-bell text-base"></i>
+            <span class="text-[10px] font-medium mt-0.5">Alarm</span>
+        </button>
+    </nav>
+
+    <!-- Inline Service Worker & Core Logic Script -->
+    <script>
+        // Service Worker Registration
+        let swRegistration = null;
+        if ('serviceWorker' in navigator) {
+            const swCode = `
+                const CACHE_NAME = 'tracker-pwa-v4';
+                self.addEventListener('install', e => self.skipWaiting());
+                self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => caches.match(e.request))));
+                self.addEventListener('notificationclick', e => {
+                    e.notification.close();
+                    if (e.action === 'snooze') {
+                        self.clients.matchAll({ type: 'window' }).then(clients => {
+                            clients.forEach(c => c.postMessage({ type: 'SNOOZE_ALARM' }));
+                        });
+                    } else if (e.action === 'dismiss') {
+                        self.clients.matchAll({ type: 'window' }).then(clients => {
+                            clients.forEach(c => c.postMessage({ type: 'DISMISS_ALARM' }));
+                        });
+                    } else {
+                        e.waitUntil(
+                            self.clients.matchAll({ type: 'window' }).then(clientList => {
+                                for (let i = 0; i < clientList.length; i++) {
+                                    if ('focus' in clientList[i]) return clientList[i].focus();
+                                }
+                                if (self.clients.openWindow) return self.clients.openWindow('./');
+                            })
+                        );
+                    }
+                });
+            `;
+            const blob = new Blob([swCode], { type: 'text/javascript' });
+            navigator.serviceWorker.register(URL.createObjectURL(blob)).then(reg => {
+                swRegistration = reg;
+            }).catch(err => console.log('SW Load Error:', err));
+
+            navigator.serviceWorker.addEventListener('message', event => {
+                if (event.data && event.data.type === 'SNOOZE_ALARM') snoozeAlarm();
+                if (event.data && event.data.type === 'DISMISS_ALARM') dismissAlarmBanner();
+            });
+        }
+
+        // App State Storage
+        let attendanceData = JSON.parse(localStorage.getItem('earth_att_data') || '[]');
+        let tasksData = JSON.parse(localStorage.getItem('earth_tasks_data') || '[]');
+        let reminderTime = localStorage.getItem('earth_reminder_time') || '20:00';
+        let alarmToneChoice = localStorage.getItem('earth_alarm_tone') || 'chime';
+        let snoozeMinutes = parseInt(localStorage.getItem('earth_snooze_duration') || '10');
+        let snoozedUntilTimestamp = parseInt(localStorage.getItem('earth_snooze_target') || '0');
+        let targetWhatsapp = localStorage.getItem('earth_whatsapp_number') || '';
+        let currentTaskFilter = 'all';
+        let currentPriorityFilter = 'all';
+
+        // Web Audio Synthesizer Alarm Engine
+        let audioCtx = null;
+        let alarmLoopInterval = null;
+        let vibrationInterval = null;
+
+        function getAudioContext() {
+            if (!audioCtx) {
+                const AudioContext = window.AudioContext || window.webkitAudioContext;
+                if (AudioContext) audioCtx = new AudioContext();
+            }
+            if (audioCtx && audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+            return audioCtx;
+        }
+
+        document.addEventListener('click', () => { getAudioContext(); }, { once: true });
+
+        function triggerVibrationPattern() {
+            if ('vibrate' in navigator) {
+                navigator.vibrate([800, 400, 800, 400]);
+            }
+        }
+
+        // Navigation Switcher
+        function switchTab(tabName) {
+            ['attendance', 'tasks', 'reports', 'settings'].forEach(t => {
+                document.getElementById('sec-' + t).classList.add('hidden');
+                
+                const dt = document.getElementById('tab-' + t);
+                if (dt) dt.className = "px-3.5 py-1.5 rounded-lg text-stone-200 hover:text-white transition relative";
+                
+                const mb = document.getElementById('mob-tab-' + t);
+                if (mb) mb.className = "flex flex-col items-center justify-center flex-1 py-1 hover:text-white text-stone-400 touch-active";
+            });
+
+            document.getElementById('sec-' + tabName).classList.remove('hidden');
+            
+            const activeDt = document.getElementById('tab-' + tabName);
+            if (activeDt) activeDt.className = "px-3.5 py-1.5 rounded-lg bg-stone-100 text-earth-dark font-semibold shadow-xs transition relative";
+            
+            const activeMb = document.getElementById('mob-tab-' + tabName);
+            if (activeMb) activeMb.className = "flex flex-col items-center justify-center flex-1 py-1 text-white touch-active";
+
+            if (tabName === 'reports') renderReports();
+        }
+
+        // Initialization
+        document.addEventListener('DOMContentLoaded', () => {
+            const today = new Date().toISOString().split('T')[0];
+            const currentMonth = today.substring(0, 7);
+
+            document.getElementById('att-date').value = today;
+            document.getElementById('filter-month').value = currentMonth;
+            document.getElementById('report-month').value = currentMonth;
+            document.getElementById('reminder-time').value = reminderTime;
+            document.getElementById('alarm-tone').value = alarmToneChoice;
+            document.getElementById('snooze-duration').value = String(snoozeMinutes);
+            document.getElementById('banner-snooze-min').innerText = snoozeMinutes;
+            document.getElementById('whatsapp-number').value = targetWhatsapp;
+
+            renderAttendanceTable();
+            renderTasks();
+            updatePendingBadge();
+            generateWhatsAppPreviewText();
+            updateNotificationStatusUI();
+
+            setInterval(checkReminderTrigger, 10000);
+        });
+
+        // Attendance CRUD
+        function saveAttendance(e) {
+            e.preventDefault();
+            const date = document.getElementById('att-date').value;
+            const status = document.getElementById('att-status').value;
+            const desc = document.getElementById('att-desc').value.trim();
+
+            const existingIdx = attendanceData.findIndex(item => item.date === date);
+            if (existingIdx >= 0) {
+                attendanceData[existingIdx] = { date, status, description: desc };
+            } else {
+                attendanceData.push({ date, status, description: desc });
+            }
+
+            localStorage.setItem('earth_att_data', JSON.stringify(attendanceData));
+            document.getElementById('att-desc').value = '';
+            renderAttendanceTable();
+            renderReports();
+        }
+
+        function renderAttendanceTable() {
+            const selectedMonth = document.getElementById('filter-month').value;
+            const searchQuery = (document.getElementById('att-search').value || '').toLowerCase();
+            const tbody = document.getElementById('attendance-tbody');
+            tbody.innerHTML = '';
+
+            const filtered = attendanceData.filter(item => {
+                const matchMonth = !selectedMonth || item.date.startsWith(selectedMonth);
+                const matchSearch = !searchQuery || item.description.toLowerCase().includes(searchQuery) || item.status.toLowerCase().includes(searchQuery);
+                return matchMonth && matchSearch;
+            }).sort((a, b) => new Date(b.date) - new Date(a.date));
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="4" class="p-4 text-center text-earth-muted">No attendance entries found for selected period.</td></tr>`;
+                return;
+            }
+
+            filtered.forEach(item => {
+                let badgeClass = 'badge-pending';
+                if (item.status === 'Present') badgeClass = 'badge-completed';
+                else if (item.status === 'WFH') badgeClass = 'badge-ongoing';
+                else if (item.status === 'Half Day') badgeClass = 'badge-partial';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="p-2.5 font-bold whitespace-nowrap">${item.date}</td>
+                    <td class="p-2.5"><span class="px-2 py-0.5 rounded-full text-[11px] font-bold ${badgeClass}">${item.status}</span></td>
+                    <td class="p-2.5 leading-relaxed">${escapeHTML(item.description)}</td>
+                    <td class="p-2.5 text-right whitespace-nowrap">
+                        <button onclick="deleteAttendance('${item.date}')" class="text-rose-700 hover:text-rose-900 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function deleteAttendance(date) {
+            if (confirm(`Delete attendance record for ${date}?`)) {
+                attendanceData = attendanceData.filter(item => item.date !== date);
+                localStorage.setItem('earth_att_data', JSON.stringify(attendanceData));
+                renderAttendanceTable();
+                renderReports();
+            }
+        }
+
+        function exportAttendanceCSV() {
+            let csv = "Date,Status,Description\n";
+            attendanceData.forEach(item => {
+                csv += `"${item.date}","${item.status}","${item.description.replace(/"/g, '""')}"\n`;
+            });
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `attendance_log_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        // Task CRUD
+        function saveTask(e) {
+            e.preventDefault();
+            const title = document.getElementById('task-title').value.trim();
+            const priority = document.getElementById('task-priority').value;
+            const status = document.getElementById('task-status').value;
+
+            tasksData.push({
+                id: Date.now().toString(),
+                title,
+                priority,
+                status,
+                createdAt: new Date().toISOString()
+            });
+
+            localStorage.setItem('earth_tasks_data', JSON.stringify(tasksData));
+            document.getElementById('task-title').value = '';
+            renderTasks();
+            updatePendingBadge();
+            renderReports();
+        }
+
+        function setTaskFilter(filter) {
+            currentTaskFilter = filter;
+            ['all', 'Pending', 'Ongoing', 'Partially Completed', 'Completed'].forEach(f => {
+                const btn = document.getElementById('filter-task-' + f);
+                if (btn) btn.className = (f === filter) ? "flex-1 sm:flex-initial px-2 py-1 rounded-md bg-white text-earth-dark shadow-xs font-bold" : "flex-1 sm:flex-initial px-2 py-1 rounded-md text-earth-muted";
+            });
+            renderTasks();
+        }
+
+        function setPriorityFilter(prio) {
+            currentPriorityFilter = prio;
+            ['all', 'High', 'Medium', 'Low'].forEach(p => {
+                const btn = document.getElementById('prio-filter-' + p);
+                if (btn) btn.className = (p === prio) ? "px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth font-bold text-earth-dark shrink-0" : "px-2.5 py-0.5 rounded-full bg-earth-surface border border-earth text-earth-muted shrink-0";
+            });
+            renderTasks();
+        }
+
+        function renderTasks() {
+            const container = document.getElementById('tasks-container');
+            container.innerHTML = '';
+
+            const filtered = tasksData.filter(t => {
+                const matchStatus = (currentTaskFilter === 'all') || (t.status === currentTaskFilter);
+                const matchPrio = (currentPriorityFilter === 'all') || (t.priority === currentPriorityFilter);
+                return matchStatus && matchPrio;
+            });
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<div class="p-4 text-center text-earth-muted text-xs">No tasks found matching filter criteria.</div>`;
+                return;
+            }
+
+            filtered.forEach(task => {
+                let prioClass = 'prio-medium';
+                if (task.priority === 'High') prioClass = 'prio-high';
+                else if (task.priority === 'Low') prioClass = 'prio-low';
+
+                const div = document.createElement('div');
+                div.className = "bg-earth-surface p-3 rounded-xl border border-earth flex items-center justify-between gap-3";
+                div.innerHTML = `
+                    <div class="flex-grow">
+                        <div class="flex items-center space-x-2 mb-1">
+                            <span class="px-2 py-0.2 rounded-md text-[10px] font-bold ${prioClass}">${task.priority}</span>
+                            <span class="text-xs font-bold text-earth-dark">${escapeHTML(task.title)}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center space-x-2 shrink-0">
+                        <select onchange="updateTaskStatus('${task.id}', this.value)" class="bg-white border border-earth rounded-lg text-xs font-semibold px-2 py-1 outline-none">
+                            <option value="Pending" ${task.status === 'Pending' ? 'selected' : ''}>⏳ Pending</option>
+                            <option value="Ongoing" ${task.status === 'Ongoing' ? 'selected' : ''}>🔄 Ongoing</option>
+                            <option value="Partially Completed" ${task.status === 'Partially Completed' ? 'selected' : ''}>🌓 Partial</option>
+                            <option value="Completed" ${task.status === 'Completed' ? 'selected' : ''}>✅ Done</option>
+                        </select>
+                        <button onclick="deleteTask('${task.id}')" class="text-rose-700 hover:text-rose-900 p-1"><i class="fa-solid fa-trash-can"></i></button>
+                    </div>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        function updateTaskStatus(id, newStatus) {
+            const task = tasksData.find(t => t.id === id);
+            if (task) {
+                task.status = newStatus;
+                localStorage.setItem('earth_tasks_data', JSON.stringify(tasksData));
+                updatePendingBadge();
+                renderReports();
+            }
+        }
+
+        function deleteTask(id) {
+            tasksData = tasksData.filter(t => t.id !== id);
+            localStorage.setItem('earth_tasks_data', JSON.stringify(tasksData));
+            renderTasks();
+            updatePendingBadge();
+            renderReports();
+        }
+
+        function updatePendingBadge() {
+            const pendingCount = tasksData.filter(t => t.status !== 'Completed').length;
+            const badge = document.getElementById('pending-badge');
+            if (pendingCount > 0) {
+                badge.innerText = pendingCount;
+                badge.classList.remove('hidden');
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
+        // ================= TAB-SPECIFIC WHATSAPP REPORT GENERATORS =================
+
+        // 1. Attendance Tab Share Generator (Footer branding line removed)
+        function generateAttendanceWhatsAppReport() {
+            const selectedMonth = document.getElementById('filter-month').value || new Date().toISOString().substring(0, 7);
+            const [year, month] = selectedMonth.split('-');
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[parseInt(month, 10) - 1] || month;
+
+            const filteredAttendance = attendanceData.filter(item => item.date.startsWith(selectedMonth));
+
+            let reportText = `📋 *DAILY ATTENDANCE & WORK LOG*
+`;
+            reportText += `📅 *Period:* ${monthName} ${year}
+`;
+            reportText += `──────────────────────
+
+`;
+
+            if (filteredAttendance.length === 0) {
+                reportText += `_No attendance logs recorded for this period._
+`;
+            } else {
+                filteredAttendance.sort((a, b) => new Date(a.date) - new Date(b.date));
+                filteredAttendance.forEach(entry => {
+                    reportText += `▫️ *${entry.date}* (${entry.status})
+   ${entry.description}
+
+`;
+                });
+            }
+            return reportText.trim();
+        }
+
+        function shareAttendanceWhatsApp() {
+            openWhatsApp(generateAttendanceWhatsAppReport());
+        }
+
+        // 2. Tasks Tab Share Generator (Footer branding line removed)
+        function generateTasksWhatsAppReport() {
+            const totalTasks = tasksData.length;
+            const completedTasks = tasksData.filter(t => t.status === 'Completed').length;
+            const ongoingTasks = tasksData.filter(t => t.status === 'Ongoing' || t.status === 'Partially Completed').length;
+            const pendingTasks = tasksData.filter(t => t.status === 'Pending').length;
+            const completionRate = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
+
+            let reportText = `📊 *TASK ROSTER REPORT*
+`;
+            reportText += `──────────────────────
+`;
+            reportText += `• Total: ${totalTasks} | Done: ${completedTasks} (${completionRate}%)
+`;
+            reportText += `• Ongoing/Partial: ${ongoingTasks} | Pending: ${pendingTasks}
+`;
+            reportText += `──────────────────────
+
+`;
+
+            if (tasksData.length === 0) {
+                reportText += `_No tasks currently added in roster._`;
+            } else {
+                tasksData.forEach((task, index) => {
+                    let statusEmoji = '⏳';
+                    if (task.status === 'Completed') statusEmoji = '✅';
+                    else if (task.status === 'Ongoing') statusEmoji = '🔄';
+                    else if (task.status === 'Partially Completed') statusEmoji = '🌓';
+
+                    let prioEmoji = '🟡';
+                    if (task.priority === 'High') prioEmoji = '🔴';
+                    else if (task.priority === 'Low') prioEmoji = '🟢';
+
+                    reportText += `${index + 1}. ${statusEmoji} [${task.status}] ${task.title} (Prio: ${prioEmoji} ${task.priority})
+`;
+                });
+            }
+            return reportText.trim();
+        }
+
+        function shareTasksWhatsApp() {
+            openWhatsApp(generateTasksWhatsAppReport());
+        }
+
+        // 3. Reports Tab Share Generator (Analytics Summary Only - Footer branding line removed)
+        function generateReportsWhatsAppReport() {
+            const selectedMonth = document.getElementById('report-month').value || new Date().toISOString().substring(0, 7);
+            const [year, month] = selectedMonth.split('-');
+            const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+            const monthName = monthNames[parseInt(month, 10) - 1] || month;
+
+            const filteredAtt = attendanceData.filter(a => a.date.startsWith(selectedMonth));
+            const completedCount = tasksData.filter(t => t.status === 'Completed').length;
+            const rate = tasksData.length > 0 ? Math.round((completedCount / tasksData.length) * 100) : 0;
+
+            let reportText = `📈 *MONTHLY PERFORMANCE SUMMARY*
+`;
+            reportText += `📅 *Month:* ${monthName} ${year}
+`;
+            reportText += `──────────────────────
+`;
+            reportText += `• Attendance Days Logged: *${filteredAtt.length}*
+`;
+            reportText += `• Total Tasks Tracked: *${tasksData.length}*
+`;
+            reportText += `• Tasks Completed: *${completedCount}* (${rate}%)
+`;
+            reportText += `──────────────────────`;
+
+            return reportText;
+        }
+
+        function generateWhatsAppPreviewText() {
+            const formattedReport = generateReportsWhatsAppReport();
+            const previewBox = document.getElementById('whatsapp-preview-box');
+            if (previewBox) {
+                previewBox.innerText = formattedReport;
+            }
+            return formattedReport;
+        }
+
+        function shareReportsWhatsApp() {
+            openWhatsApp(generateReportsWhatsAppReport());
+        }
+
+        function copyWhatsAppPreview() {
+            const text = generateReportsWhatsAppReport();
+            navigator.clipboard.writeText(text).then(() => {
+                alert('WhatsApp report text copied to clipboard!');
+            });
+        }
+
+        function renderReports() {
+            const selectedMonth = document.getElementById('report-month').value;
+            const filteredAtt = attendanceData.filter(a => a.date.startsWith(selectedMonth));
+            
+            document.getElementById('rep-days-worked').innerText = filteredAtt.length;
+            document.getElementById('rep-total-tasks').innerText = tasksData.length;
+            
+            const completedCount = tasksData.filter(t => t.status === 'Completed').length;
+            document.getElementById('rep-completed-tasks').innerText = completedCount;
+
+            const rate = tasksData.length > 0 ? Math.round((completedCount / tasksData.length) * 100) : 0;
+            document.getElementById('rep-task-rate').innerText = rate + '%';
+
+            // Render breakdown bars
+            const counts = { Present: 0, WFH: 0, 'Half Day': 0, Absent: 0, Holiday: 0 };
+            filteredAtt.forEach(a => counts[a.status] = (counts[a.status] || 0) + 1);
+
+            const barsContainer = document.getElementById('attendance-breakdown-bars');
+            barsContainer.innerHTML = '';
+            const total = filteredAtt.length || 1;
+
+            Object.keys(counts).forEach(key => {
+                const pct = Math.round((counts[key] / total) * 100);
+                const div = document.createElement('div');
+                div.innerHTML = `
+                    <div class="flex justify-between text-xs font-semibold mb-1">
+                        <span>${key}</span>
+                        <span>${counts[key]} days (${pct}%)</span>
+                    </div>
+                    <div class="w-full bg-earth-surface h-2 rounded-full overflow-hidden">
+                        <div class="bg-earth-primary h-full" style="width: ${pct}%"></div>
+                    </div>
+                `;
+                barsContainer.appendChild(div);
+            });
+
+            generateWhatsAppPreviewText();
+        }
+
+        // Alarm Notification Permission & Trigger
+        function requestNotificationPermission() {
+            if (!('Notification' in window)) {
+                alert('This device/browser does not support system OS notifications.');
+                return;
+            }
+            Notification.requestPermission().then(permission => {
+                updateNotificationStatusUI();
+                if (permission === 'granted') {
+                    showOSNotification('OS Notifications Enabled!', 'You will receive daily reminders and snooze alerts even when minimized.');
+                }
+            });
+        }
+
+        function updateNotificationStatusUI() {
+            const el = document.getElementById('notification-status-text');
+            if (!el) return;
+            if (!('Notification' in window)) {
+                el.innerText = 'Status: Not Supported in this browser';
+                el.className = 'text-[10px] font-bold text-rose-700 mt-1';
+            } else {
+                el.innerText = `Status: Permission ${Notification.permission.toUpperCase()}`;
+                el.className = (Notification.permission === 'granted') ? 'text-[10px] font-bold text-emerald-700 mt-1' : 'text-[10px] font-bold text-amber-700 mt-1';
+            }
+        }
+
+        function showOSNotification(title, body) {
+            if ('Notification' in window && Notification.permission === 'granted') {
+                const options = {
+                    body: body,
+                    icon: 'https://cdn-icons-png.flaticon.com/512/3652/3652191.png',
+                    vibrate: [800, 400, 800, 400],
+                    tag: 'daily-reminder',
+                    renotify: true,
+                    actions: [
+                        { action: 'snooze', title: `Snooze (${snoozeMinutes}m)` },
+                        { action: 'dismiss', title: 'Dismiss' }
+                    ]
+                };
+
+                if (swRegistration && swRegistration.showNotification) {
+                    swRegistration.showNotification(title, options);
+                } else {
+                    new Notification(title, options);
+                }
+            }
+        }
+
+        function snoozeAlarm() {
+            stopAudioAlarm();
+            document.getElementById('alarm-banner').classList.add('hidden');
+
+            const snoozeMs = snoozeMinutes * 60 * 1000;
+            snoozedUntilTimestamp = Date.now() + snoozeMs;
+            localStorage.setItem('earth_snooze_target', String(snoozedUntilTimestamp));
+
+            const targetTimeStr = new Date(snoozedUntilTimestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            alert(`Alarm snoozed for ${snoozeMinutes} minutes. Next alert at ${targetTimeStr}.`);
+        }
+
+        function checkReminderTrigger() {
+            const now = new Date();
+            const currentHM = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+
+            if (snoozedUntilTimestamp > 0) {
+                if (Date.now() >= snoozedUntilTimestamp) {
+                    snoozedUntilTimestamp = 0;
+                    localStorage.removeItem('earth_snooze_target');
+                    triggerAlarmSequence('Snooze Alarm Reminder! ⏰');
+                }
+                return;
+            }
+
+            if (currentHM === reminderTime) {
+                const lastTriggered = sessionStorage.getItem('last_earth_alarm_triggered');
+                if (lastTriggered !== currentHM) {
+                    sessionStorage.setItem('last_earth_alarm_triggered', currentHM);
+                    triggerAlarmSequence('Reporting Time Reminder! ⏰');
+                }
+            }
+        }
+
+        function triggerAlarmSequence(titleText = 'Reporting Time Reminder!') {
+            startAudioAlarmLoop();
+            document.getElementById('alarm-banner').classList.remove('hidden');
+            showOSNotification(titleText, 'Time to log your work done and check active tasks.');
+        }
+
+        function dismissAlarmBanner() {
+            document.getElementById('alarm-banner').classList.add('hidden');
+            snoozedUntilTimestamp = 0;
+            localStorage.removeItem('earth_snooze_target');
+            stopAudioAlarm();
+        }
+
+        function playSynthesizerTone(type = 'chime') {
+            try {
+                const ctx = getAudioContext();
+                if (!ctx) return;
+
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+
+                const now = ctx.currentTime;
+
+                if (type === 'chime') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(523.25, now);
+                    osc.frequency.setValueAtTime(659.25, now + 0.12);
+                    osc.frequency.setValueAtTime(783.99, now + 0.24);
+                    gain.gain.setValueAtTime(0.35, now);
+                    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                } else if (type === 'siren') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(600, now);
+                    osc.frequency.linearRampToValueAtTime(950, now + 0.2);
+                    osc.frequency.linearRampToValueAtTime(600, now + 0.4);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else {
+                    osc.type = 'square';
+                    osc.frequency.setValueAtTime(880, now);
+                    gain.gain.setValueAtTime(0.3, now);
+                    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.18);
+                    osc.start(now);
+                    osc.stop(now + 0.18);
+                }
+            } catch (e) {
+                console.error('Audio synthesizer error:', e);
+            }
+        }
+
+        function startAudioAlarmLoop() {
+            stopAudioAlarm();
+            const tone = document.getElementById('alarm-tone') ? document.getElementById('alarm-tone').value : alarmToneChoice;
+            
+            playSynthesizerTone(tone);
+            triggerVibrationPattern();
+
+            alarmLoopInterval = setInterval(() => playSynthesizerTone(tone), 700);
+            vibrationInterval = setInterval(() => triggerVibrationPattern(), 2400);
+        }
+
+        function stopAudioAlarm() {
+            if (alarmLoopInterval) {
+                clearInterval(alarmLoopInterval);
+                alarmLoopInterval = null;
+            }
+            if (vibrationInterval) {
+                clearInterval(vibrationInterval);
+                vibrationInterval = null;
+            }
+            if ('vibrate' in navigator) {
+                navigator.vibrate(0);
+            }
+        }
+
+        function triggerAudioAlarmTest() {
+            triggerAlarmSequence('Test Alarm Alert ⏰');
+        }
+
+        function saveReminderTime() {
+            reminderTime = document.getElementById('reminder-time').value;
+            alarmToneChoice = document.getElementById('alarm-tone').value;
+            snoozeMinutes = parseInt(document.getElementById('snooze-duration').value);
+
+            localStorage.setItem('earth_reminder_time', reminderTime);
+            localStorage.setItem('earth_alarm_tone', alarmToneChoice);
+            localStorage.setItem('earth_snooze_duration', String(snoozeMinutes));
+
+            document.getElementById('banner-snooze-min').innerText = snoozeMinutes;
+            alert(`Reporting alarm scheduled for ${reminderTime} daily with ${snoozeMinutes}-minute snooze.`);
+        }
+
+        function saveWhatsAppNumber() {
+            targetWhatsapp = document.getElementById('whatsapp-number').value.trim();
+            localStorage.setItem('earth_whatsapp_number', targetWhatsapp);
+            alert('WhatsApp target phone number saved successfully!');
+        }
+
+        function exportJSONBackup() {
+            const data = { attendance: attendanceData, tasks: tasksData, reminderTime, alarmToneChoice, targetWhatsapp };
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `tracker_backup_${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+        }
+
+        function importJSONBackup(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(evt) {
+                try {
+                    const parsed = JSON.parse(evt.target.result);
+                    if (parsed.attendance) localStorage.setItem('earth_att_data', JSON.stringify(parsed.attendance));
+                    if (parsed.tasks) localStorage.setItem('earth_tasks_data', JSON.stringify(parsed.tasks));
+                    if (parsed.reminderTime) localStorage.setItem('earth_reminder_time', parsed.reminderTime);
+                    if (parsed.alarmToneChoice) localStorage.setItem('earth_alarm_tone', parsed.alarmToneChoice);
+                    if (parsed.targetWhatsapp) localStorage.setItem('earth_whatsapp_number', parsed.targetWhatsapp);
+
+                    location.reload();
+                } catch (err) {
+                    alert('Invalid JSON backup file format.');
+                }
+            };
+            reader.readAsText(file);
+        }
+
+        function openWhatsApp(message) {
+            const encoded = encodeURIComponent(message);
+            let url = `https://wa.me/?text=${encoded}`;
+            if (targetWhatsapp) {
+                const cleanPhone = targetWhatsapp.replace(/[^0-9]/g, '');
+                url = `https://wa.me/${cleanPhone}?text=${encoded}`;
+            }
+            window.open(url, '_blank');
+        }
+
+        function escapeHTML(str) {
+            return (str || '').replace(/[&<>'"]/g, 
+                tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+            );
+        }
+    </script>
+</body>
+</html>
